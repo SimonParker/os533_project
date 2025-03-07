@@ -44,7 +44,9 @@ clear.signal()
 
 potential issues:
 - what if readers keep on coming, and the new threads grab the mutex before old threads leave? all threads would be trapped.
+  - fixed by First in, First out scheduling of threads
 - what if writers keep on coming, blocking the first read and all subsequent reads? no read threads would finish
+  - fixed by First in, First out scheduling of threads
 
 in terms of the Lightswitch class in the book, you can't lock and unlock at the same time. So endless locks would block all unlocks
 
@@ -59,38 +61,77 @@ adjust the previous solution to address starvation, specifically: when a writer 
 Solution:
 
 room = Lightswitch()
-writers = 0
-mutex = Semaphore(1)
+gate = Semaphore(1)
 clear = Semaphore(1)
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Readers:
 
-#second lightswitch? for the writers?
-switch.lock(clear)
+gate.wait() #turnstile barrier
+gate.signal()
+
+room.lock(clear)
 
 read()
 
-switch.unlock(clear)
+room.unlock(clear)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Writers:
 
-mutex.wait()
-writers += 1
-mutex.signal()
-
+gate.wait() #this will eventually run b/c there are a finite # of readers waiting at the gate before the writer, FIFO scheduling :)
 clear.wait() 
 
 write()
 
 clear.signal()
+gate.signal() #this oks another writer to go, or the reader queue to start going
 
-mutex.wait()
-writers -= 1
-mutex.signal()
 
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
+Writer priority version: when a writer arrives, no readers enter until all writers have left
+
+- now we have 2 requirements
+  - when a writer arrives, no readers enter until all writers have left
+  - when a reader arrives, no writers enter until all readers have left
+- 2 lightswitches?
+
+Solution:
+
+r = Lightswitch()
+w = Lightswitch()
+no_readers = Semaphore(1) #indicating there are no readers
+no_writers = Semaphore(1) #indicating there are no writers
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Readers:
+
+
+no_writers.wait() #waits for the last writer to leave
+r.lock(no_readers) #indicates at least 1 reader, queueing writers
+no_writers.signal() #allows writers to queue future readers
+
+read()
+
+r.unlock(no_readers) #last reader out
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Writers:
+
+w.lock(no_writers) #indicates theres at least 1 writer, queueing readers
+no_readers.wait() #waits for there to be no readers
+
+write()
+
+no_readers.signal() #if there is another writer, it will grab this with priority over waiting readers, which can't lock until 
+                    #writer leaves
+                    
+w.unlock(no_writers) #last writer out
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Note that this solution gives writers priority, but now can starve a reader.
 '''
