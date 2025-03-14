@@ -28,23 +28,23 @@ CONSUMER:
 
 Updated to enforce constraints:
 
-buffer = Semaphore(1)
-lock = Semaphore(0)
+mutex = Semaphore(1)
+not_empty = Semaphore(0)
 
 ~~~~~~~~~~~~~~~~~~~~~~~
 PRODUCER:
   event = waitForEvent()
-  buffer.wait()
+  mutex.wait()
   buffer.add(event)
-  lock.signal()
-  buffer.signal()
+  not_empty.signal()
+  mutex.signal()
 
 ~~~~~~~~~~~~~~~~~~~~~~~
 CONSUMER:
-  lock.wait()
-  buffer.wait()
+  not_empty.wait()
+  mutex.wait()
   event = buffer.get()
-  buffer.signal()
+  mutex.signal()
   event.process()
 
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -57,24 +57,24 @@ CONSUMER:
 Updated to enforce finite buffer constraint: a producer must block if the buffer is full
 
 buffer_slots = Semaphore(n) #n is the size of the buffer
-buffer = Semaphore(1)
-lock = Semaphore(0)
+mutex = Semaphore(1)
+not_empty = Semaphore(0)
 
 ~~~~~~~~~~~~~~~~~~~~~~~
 PRODUCER:
   event = waitForEvent()
-  buffer_slots.wait()
-  buffer.wait()
+  buffer_slots.wait() #reserve a slot
+  mutex.wait()
   buffer.add(event)
-  lock.signal()
-  buffer.signal()
+  not_empty.signal()
+  mutex.signal()
 
 ~~~~~~~~~~~~~~~~~~~~~~~
 CONSUMER:
-  lock.wait()
-  buffer.wait()
+  not_empty.wait()
+  mutex.wait()
   event = buffer.get()
-  buffer.signal()
+  mutex.signal()
   buffer_slots.signal()
   event.process()
 

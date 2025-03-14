@@ -193,7 +193,7 @@ Paper Aid:
     need_tobacco.signal()
     paper_count -= 1
     matches_count -= 1
-  if tobacco_count >= 1: 
+  else if tobacco_count >= 1: 
     need_matches.signal()
     paper_count -= 1
     tobacco_count -= 1

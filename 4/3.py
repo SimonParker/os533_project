@@ -27,8 +27,8 @@ Fix this, assuming a finite number of threads
 Starter:
 
 n = 3 #3 threads
-c1 = 0 #count of incoming threads, stop new threads when this reaches the n (all threads are ready to go)
-c2 = 0 #count of threads ready to work on the critical section
+ready_count = 0 
+finished_count = 0 
 mutex = Semaphore(1)
 
 gate1 = Semaphore(1) #ready to let people through initially
@@ -39,9 +39,9 @@ while true:
   gate1.signal()
 
   mutex.wait()
-  c1 += 1
-  if c1 == n:
-    c1 = 0
+  ready_count += 1
+  if ready_count == n:
+    ready_count = 0
     gate1.wait() #close the gate
     gate2.signal()
   mutex.signal()
@@ -51,9 +51,9 @@ while true:
   gate2.signal()
 
   mutex.wait()
-  c2 += 1
-  if c2 == n:
-    c2 = 0
+  finished_count += 1
+  if finished_count == n:
+    finished_count = 0
     gate2.wait() 
     gate1.signal()
   mutex.signa()
